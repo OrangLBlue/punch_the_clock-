@@ -17,12 +17,13 @@ myapp.confirmX = 0  //确认提交的x坐标
 myapp.confirmY = 0  //确认提交的Y坐标
 myapp.delayMax = "2"   //最长延时
 myapp.delayMin = "1"   //最短延时
-myapp.instructions = "1.首次使用需要给予悬浮窗权限。每次关闭启动，需要打开无障碍服务，有root权限，可以直接使用。\n2.由于不占流量和运行，建议锁定后台运行，否则可能会被锁屏或当成闲置应用请理\n3.通过设定时间，并在输入框中输入锁屏解锁密码（目前只支持数字密码哦），然后点击 定时与解锁 按钮，到了约定时间就会自动进行解锁并打卡（手机不同可能会出现不兼容现象，可以不设置手机锁屏进行使用，但不建议）。如果没有密码锁屏也可以不输入密码哦。\n3.如果设置了定时模式，但又不想采用定时打卡的方式了，可以通过 取消定时按键 取消定时 \n4.如果手机不兼容定时自动打卡，或想手动打卡 那么可以点击 立即打卡 马上进行打卡哦 \n4.切记不要太过依赖此软件，功能尚有不足，纯个人兴趣，没有测试群众，可能会出现一些个问题  \n(～￣▽￣)～\n\n 私信地址：(https://blog.csdn.net/orlobl 或 qq1398825239)"
+myapp.instructions = "1.首次使用需要给予悬浮窗权限，打开无障碍服务，有root权限，可以直接使用。并且需要进行一次立即打卡，获取相关兼容性数据。\n2.由于不占流量和运行，建议锁定后台运行（尤其是设定定时打卡时一定要保证程序是在运行的），否则可能会被锁屏或当成闲置应用请理\n3.通过设定时间，并在输入框中输入锁屏解锁密码（目前只支持数字密码哦），然后点击 定时与解锁 按钮，到了约定时间就会自动进行解锁并打卡（手机不同可能会出现不兼容现象，可以不设置手机锁屏进行使用，但不建议）。如果没有密码锁屏也可以不输入密码哦。\n3.如果设置了定时模式，但又不想采用定时打卡的方式了，可以通过 取消定时按键 取消定时 \n4.如果手机不兼容定时自动打卡，或想手动打卡 那么可以点击 立即打卡 马上进行打卡哦 4.在立即打卡过程中通过按音量上键可以终止打卡哦 \n5.切记不要太过依赖此软件，功能尚有不足，纯个人兴趣，没有测试群众，使用过程中一定会出现很多问题，还是希望大家养成健康打卡的好习惯呀  \n(～￣▽￣)～\n\n 私信地址：(https://blog.csdn.net/orlobl 或 qq1398825239)"
 myapp.protocolText =
 "\t本软件是用于完美校园打卡的免费软件，不可用于非法用途，未经本人同意授权，也不\
 可用于私下交易，或使用本软件开源平台源码进行二次开发，发布群控等灰色软件。\n\n\t本软\
-件为兴趣产物，没有做兼容性测试，可能有些手机不兼容无法使用，或部分功能无法使用，切记不要太过依赖此软件\
-如有问题可以私信我(https://blog.csdn.net/orlobl 或 qq1398825239)，虽然因个人时间原因，有可能不会进行后期更新\
+件为个人的兴趣产物，没有做兼容性测试，可能有些手机不兼容无法使用，或部分功能无法使用，\
+切记切记切记切记不要依赖此软件，健康打卡才是最重要的。感兴趣的玩玩就好了，如有问题可以私信我\
+(https://blog.csdn.net/orlobl 或 qq1398825239)，虽然因个人时间原因，有可能不会进行后期更新\
 维护，但你们的建议将是我前进动力，也希望本软件可以帮到你们。\n\n————by Orange"
 //---------------------------------------------------------------------------------------
 //---------------------------------自定义控件--------------------------------------------------
@@ -122,18 +123,6 @@ activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STAT
 //存储数据
 SaveData();
 
-threads.start(function () {
-    //在新线程执行的代码
-    //请求截图
-    if(myapp.confirmX == 0 && myapp.confirmY == 0)
-    {
-        if(!requestScreenCapture()){
-            toast("请求截图失败");
-            exit();
-        }
-    }
-});
-
 //检测无障碍权限开关单击事件
 ui.autoService.on("check", function(checked) {
     // 用户勾选无障碍服务的选项时，跳转到页面让用户去开启
@@ -213,6 +202,7 @@ ui.Immediately.on("click", ()=>{
     //监听音量键按下
     events.onKeyDown("volume_up", () => {
         toastLog('按音量上键停止');
+        alert("打卡终止")
         exit();
     });
 
@@ -246,6 +236,7 @@ function main() {
 //是否显示声明
 function protocol() {
     if(!myapp.protocol){
+        toastLog("需要获取悬浮窗权限")
         dialogs.build({
             //对话框标题
             title: "声明",
@@ -347,7 +338,7 @@ function 完美校园打卡(){
     if (activity2 != null) {
         activity2.click()
         log("已找到提交信息");
-        sleep(200);
+        sleep(500);
 
     } else {
         log("Error:未找到提交信息");
@@ -359,28 +350,36 @@ function 完美校园打卡(){
         //点击确认提交
         log("找到返回编辑" + myapp.confirmX + myapp.confirmY);
         if (myapp.confirmX == 0 && myapp.confirmY == 0){
-            //获取寻找范围
-            requestScreenCapture();
-
-            log("开始寻找确认提交");
-            var rect = className("android.widget.FrameLayout").depth(8).findOne().bounds();
-            log(rect.centerX()+" "+rect.centerY());
-            // //截图
-            var img = captureScreen();
-            log("截图 " + img)
-            //在该图片中找色，指定找色区域为在位置(rect.centerX(), rect.centerY())到右下角区域，指定找色临界值为20
-            var point = findColor(img, "#F38A21", {
-                region: [rect.centerX(), rect.centerY()],
-                threshold: 80
-            });
-            if(point){
-                myapp.confirmX = point.x;
-                myapp.confirmY = point.y;
-                SaveData();
-                toastLog("找到啦:" +  myapp.confirmX + myapp.confirmY);
-            }else{
-                toastLog("没找到");
+            sleep(1500);
+            //请求截图
+            if(!requestScreenCapture()){
+                toast("请求截图失败");
+                exit();
             }
+            //获取寻找范围
+            while (true) {
+                log("开始寻找确认提交");
+                var rect = className("android.widget.FrameLayout").depth(8).findOne().bounds();
+                log(rect.centerX()+" "+rect.centerY());
+                // //截图
+                var img = captureScreen();
+                log("截图 " + img)
+                //在该图片中找色，指定找色区域为在位置(rect.centerX(), rect.centerY())到右下角区域，指定找色临界值为20
+                var point = findColor(img, "#F38A21", {
+                    region: [rect.centerX(), rect.centerY()],
+                    threshold: 80
+                });
+                if(point){
+                    myapp.confirmX = point.x;
+                    myapp.confirmY = point.y;
+                    SaveData();
+                    toastLog("找到啦:" +  myapp.confirmX + myapp.confirmY);
+                    break;
+                }else{
+                    toastLog("没找到");
+                }
+            }
+            
         }
         
         click(myapp.confirmX, myapp.confirmY);
