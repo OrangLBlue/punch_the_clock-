@@ -88,7 +88,7 @@ function 操作界面() {
                         <scroll>
                             <vertical  padding="20 1">
                                 {/* <text text="设置打卡时间" textColor="black" textSize="16sp" marginTop="10"/> */}
-                                <timepicker id = "setTime"/>
+                                <timepicker id = "setTime" bg = "#66cccc"/>
                             </vertical>
                         </scroll>
                         <input id="password" inputType="number"  singleLine="true" margin="10 2" hint="请在此处输入你的锁屏密码"></input>
@@ -109,11 +109,11 @@ function 操作界面() {
 //获取数据
 GetData();
 
-//是否显示声明
-protocol();
-
 //显示界面
 操作界面();
+
+//是否显示声明
+protocol();
 
 // 屏蔽输入法弹出
 importClass('android.view.WindowManager');
@@ -122,14 +122,17 @@ activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STAT
 //存储数据
 SaveData();
 
-//请求截图
-if(myapp.confirmX == 0 && myapp.confirmY == 0)
-{
-    if(!requestScreenCapture()){
-        toast("请求截图失败");s
-        exit();
+threads.start(function () {
+    //在新线程执行的代码
+    //请求截图
+    if(myapp.confirmX == 0 && myapp.confirmY == 0)
+    {
+        if(!requestScreenCapture()){
+            toast("请求截图失败");
+            exit();
+        }
     }
-}
+});
 
 //检测无障碍权限开关单击事件
 ui.autoService.on("check", function(checked) {
@@ -269,61 +272,6 @@ function protocol() {
     }
 }
 
-
-
-
-//保存当前界面配置及数据
-function SaveData() {
-    //存储当前是否是定时模式
-    setStorageData(myapp.saveName, "Cancellation", myapp.fixedTimeFlag);
-    //存储当前是否同意协议
-    setStorageData(myapp.saveName, "protocol", myapp.protocol);
-    //存储确认提交的位置
-    setStorageData(myapp.saveName, "confirm", [myapp.confirmX, myapp.confirmY]);
-
-}
-
-//读取界面配置及数据
-function GetData() {
-    //如果本地存储中的锁屏密码不为空，则读取锁屏密码
-    if (getStorageData(myapp.saveName, "password") != undefined) {
-        myapp.password = getStorageData(myapp.saveName, "password");
-    }
-
-    //如果本地存储中的时间不为空，则读取定时
-    if (getStorageData(myapp.saveName, "setTime") != undefined) {
-        var arry = getStorageData(myapp.saveName, "setTime");
-        myapp.timeHouse = arry[0];
-        myapp.timeMinute = arry[1];
-    }
-
-    //获取当前模式  是否为定时模式
-    if (getStorageData(myapp.saveName, "Cancellation") != undefined) {
-        myapp.fixedTimeFlag = getStorageData(myapp.saveName, "Cancellation");
-    }
-
-    //如果本地存储中的协议指标不为空，则读取协议指标
-    if (getStorageData(myapp.saveName, "protocol") != undefined) {
-        myapp.protocol = getStorageData(myapp.saveName, "protocol");
-    }
-
-      //存储确认提交的位置
-    if (getStorageData(myapp.saveName, "confirm") != undefined) {
-        var arry = getStorageData(myapp.saveName, "confirm");
-        myapp.confirmX = arry[0];
-        myapp.confirmY = arry[1];
-    }
-
-    //打印获取值日志
-    log(myapp.timeHouse + " 时 " +
-    myapp.timeMinute + " 分 " +
-    myapp.timeSecond + " 秒 " + 
-    "\n密码为:" + myapp.password + 
-    "\n是否开启定时模式:" + myapp.fixedTimeFlag +
-    "\n是否同意协议：" + myapp.protocol + 
-    "\n提交信息的位置为：" + myapp.confirmX + " , " + myapp.confirmY);
-}
-
 //定时执行
 function Regular_execution() {
     while (myapp.fixedTimeFlag) {
@@ -355,7 +303,8 @@ function 完美校园打卡(){
     if (activity != null) {
         activity.parent().parent().click()
         log("已找到健康打卡");
-        sleep(1000);
+        //waitForActivity(com.wanxiao.webview.activity.WXWebViewActivity);
+        sleep(1500);
     } else {
         log("Error:未找到健康打卡");
         alert("由于不可控因素，打卡失败┭┮﹏┭┮，请手动处理");
@@ -365,6 +314,11 @@ function 完美校园打卡(){
 
     //检查是否完成加载  进入到了该页面
     while(true){
+        //错误处理
+        if(text("我知道了").exists()){
+            text("我知道了").findOne().click();
+        }
+
         if(text("姓名").exists()){
             log("已找到姓名");
             break;
@@ -403,15 +357,21 @@ function 完美校园打卡(){
 
     if (text("返回编辑").findOne()) {
         //点击确认提交
+        log("找到返回编辑" + myapp.confirmX + myapp.confirmY);
         if (myapp.confirmX == 0 && myapp.confirmY == 0){
             //获取寻找范围
+            requestScreenCapture();
+
+            log("开始寻找确认提交");
             var rect = className("android.widget.FrameLayout").depth(8).findOne().bounds();
+            log(rect.centerX()+" "+rect.centerY());
             // //截图
             var img = captureScreen();
-            //在该图片中找色，指定找色区域为在位置(400, 500)的宽为300长为200的区域，指定找色临界值为4
+            log("截图 " + img)
+            //在该图片中找色，指定找色区域为在位置(rect.centerX(), rect.centerY())到右下角区域，指定找色临界值为20
             var point = findColor(img, "#F38A21", {
                 region: [rect.centerX(), rect.centerY()],
-                threshold: 20
+                threshold: 80
             });
             if(point){
                 myapp.confirmX = point.x;
@@ -515,7 +475,58 @@ function AutomaticUnlocking() {
     }
 }
 
-//此代码由飞云脚本圈原创（www.feiyunjs.com）
+//保存当前界面配置及数据
+function SaveData(){
+    //存储当前是否是定时模式
+    setStorageData(myapp.saveName, "Cancellation", myapp.fixedTimeFlag);
+    //存储当前是否同意协议
+    setStorageData(myapp.saveName, "protocol", myapp.protocol);
+    //存储确认提交的位置
+    setStorageData(myapp.saveName, "confirm", [myapp.confirmX, myapp.confirmY]);
+
+}
+
+//读取界面配置及数据
+function GetData() {
+    //如果本地存储中的锁屏密码不为空，则读取锁屏密码
+    if (getStorageData(myapp.saveName, "password") != undefined) {
+        myapp.password = getStorageData(myapp.saveName, "password");
+    }
+
+    //如果本地存储中的时间不为空，则读取定时
+    if (getStorageData(myapp.saveName, "setTime") != undefined) {
+        var arry = getStorageData(myapp.saveName, "setTime");
+        myapp.timeHouse = arry[0];
+        myapp.timeMinute = arry[1];
+    }
+
+    //获取当前模式  是否为定时模式
+    if (getStorageData(myapp.saveName, "Cancellation") != undefined) {
+        myapp.fixedTimeFlag = getStorageData(myapp.saveName, "Cancellation");
+    }
+
+    //如果本地存储中的协议指标不为空，则读取协议指标
+    if (getStorageData(myapp.saveName, "protocol") != undefined) {
+        myapp.protocol = getStorageData(myapp.saveName, "protocol");
+    }
+
+      //存储确认提交的位置
+    if (getStorageData(myapp.saveName, "confirm") != undefined) {
+        var arry = getStorageData(myapp.saveName, "confirm");
+        myapp.confirmX = arry[0];
+        myapp.confirmY = arry[1];
+    }
+
+    //打印获取值日志
+    log(myapp.timeHouse + " 时 " +
+    myapp.timeMinute + " 分 " +
+    myapp.timeSecond + " 秒 " + 
+    "\n密码为:" + myapp.password + 
+    "\n是否开启定时模式:" + myapp.fixedTimeFlag +
+    "\n是否同意协议：" + myapp.protocol + 
+    "\n提交信息的位置为：" + myapp.confirmX + " , " + myapp.confirmY);
+}
+
 //保存本地数据
 function setStorageData(name, key, value) {
     const storage = storages.create(name);  //创建storage对象
