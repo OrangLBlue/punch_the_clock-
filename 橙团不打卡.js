@@ -6,22 +6,24 @@ myapp.appName = "完美校园"   //软件名
 myapp.saveName = "OrangeLB"  //本地存储名
 myapp.packageName = "com.newcapec.mobile.ncp"  //程序包名
 myapp.appVersion = "1.0.0"  //版本
-//myapp.windowsIndex = 0  //下拉菜单界面索引  默认为0显示操作界面
-myapp.delayMax = "2"   //最长延时
-myapp.delayMin = "1"   //最短延时
 myapp.password = ""  //我的密码
 myapp.timeHouse = "08"  //8时
 myapp.timeMinute = "00"  //0分
 myapp.timeSecond = "00"  //0秒
 myapp.fixedTimeFlag = false //是否为定时打卡模式  默认关闭
-myapp.instructions = "1.首次使用需要给予悬浮窗权限。每次关闭启动，需要打开无障碍服务，由于不占流量和运行，建议锁定后台运行，有root权限，可以直接使用\n2.通过设定时间，并在输入框中输入锁屏解锁密码（目前只支持数字密码哦），然后点击 定时与解锁 按钮，到了约定时间就会自动进行解锁并打卡（手机可能会出现不兼容现象，可以不设置密码进行使用）。如果没有密码锁屏也可以不输入密码哦。\n3.如果设置了定时模式，但又不想采用定时打卡的方式了，可以通过 取消定时按键 取消定时 \n4.如果手机不兼容定时自动打卡，或想手动打卡 那么可以点击 立即打卡 马上进行打卡哦 \n4.按音量上键可停止打卡工作 \n(～￣▽￣)～"
 myapp.protocol = false //是否同意协议 默认未同意
+//myapp.windowsIndex = 0  //下拉菜单界面索引  默认为0显示操作界面
+myapp.confirmX = 0  //确认提交的x坐标
+myapp.confirmY = 0  //确认提交的Y坐标
+myapp.delayMax = "2"   //最长延时
+myapp.delayMin = "1"   //最短延时
+myapp.instructions = "1.首次使用需要给予悬浮窗权限。每次关闭启动，需要打开无障碍服务，有root权限，可以直接使用。\n2.由于不占流量和运行，建议锁定后台运行，否则可能会被锁屏或当成闲置应用请理\n3.通过设定时间，并在输入框中输入锁屏解锁密码（目前只支持数字密码哦），然后点击 定时与解锁 按钮，到了约定时间就会自动进行解锁并打卡（手机不同可能会出现不兼容现象，可以不设置手机锁屏进行使用，但不建议）。如果没有密码锁屏也可以不输入密码哦。\n3.如果设置了定时模式，但又不想采用定时打卡的方式了，可以通过 取消定时按键 取消定时 \n4.如果手机不兼容定时自动打卡，或想手动打卡 那么可以点击 立即打卡 马上进行打卡哦 \n4.切记不要太过依赖此软件，功能尚有不足，纯个人兴趣，没有测试群众，可能会出现一些个问题  \n(～￣▽￣)～\n\n 私信地址：(https://blog.csdn.net/orlobl 或 qq1398825239)"
 myapp.protocolText =
 "\t本软件是用于完美校园打卡的免费软件，不可用于非法用途，未经本人同意授权，也不\
 可用于私下交易，或使用本软件开源平台源码进行二次开发，发布群控等灰色软件。\n\n\t本软\
-件为兴趣产物，没有做兼容性测试，可能有些手机不兼容无法使用，或部分功能无法使用，\
-如有问题可以私聊我(qq1398825239)，虽然因个人时间原因，有可能不会进行后期更新\
-维护，但你们的建议将是我前进动力，也希望本软件可以帮到你们\n\n————by Orange\n"
+件为兴趣产物，没有做兼容性测试，可能有些手机不兼容无法使用，或部分功能无法使用，切记不要太过依赖此软件\
+如有问题可以私信我(https://blog.csdn.net/orlobl 或 qq1398825239)，虽然因个人时间原因，有可能不会进行后期更新\
+维护，但你们的建议将是我前进动力，也希望本软件可以帮到你们。\n\n————by Orange"
 //---------------------------------------------------------------------------------------
 //---------------------------------自定义控件--------------------------------------------------
 //自定义按钮
@@ -119,6 +121,15 @@ activity.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STAT
 
 //存储数据
 SaveData();
+
+//请求截图
+if(myapp.confirmX == 0 && myapp.confirmY == 0)
+{
+    if(!requestScreenCapture()){
+        toast("请求截图失败");s
+        exit();
+    }
+}
 
 //检测无障碍权限开关单击事件
 ui.autoService.on("check", function(checked) {
@@ -237,7 +248,7 @@ function protocol() {
             title: "声明",
             //对话框内容
             content: myapp.protocolText,
-            contentLineSpacing: 1,
+            contentLineSpacing: 1.5,
             //确定键内容
             positive: "同意",
             //取消键内容
@@ -267,6 +278,9 @@ function SaveData() {
     setStorageData(myapp.saveName, "Cancellation", myapp.fixedTimeFlag);
     //存储当前是否同意协议
     setStorageData(myapp.saveName, "protocol", myapp.protocol);
+    //存储确认提交的位置
+    setStorageData(myapp.saveName, "confirm", [myapp.confirmX, myapp.confirmY]);
+
 }
 
 //读取界面配置及数据
@@ -292,13 +306,22 @@ function GetData() {
     if (getStorageData(myapp.saveName, "protocol") != undefined) {
         myapp.protocol = getStorageData(myapp.saveName, "protocol");
     }
-        //打印获取值日志
+
+      //存储确认提交的位置
+    if (getStorageData(myapp.saveName, "confirm") != undefined) {
+        var arry = getStorageData(myapp.saveName, "confirm");
+        myapp.confirmX = arry[0];
+        myapp.confirmY = arry[1];
+    }
+
+    //打印获取值日志
     log(myapp.timeHouse + " 时 " +
     myapp.timeMinute + " 分 " +
     myapp.timeSecond + " 秒 " + 
     "\n密码为:" + myapp.password + 
     "\n是否开启定时模式:" + myapp.fixedTimeFlag +
-    "\n是否同意协议：" + myapp.protocol);
+    "\n是否同意协议：" + myapp.protocol + 
+    "\n提交信息的位置为：" + myapp.confirmX + " , " + myapp.confirmY);
 }
 
 //定时执行
@@ -365,23 +388,44 @@ function 完美校园打卡(){
     sleep(200);
 
     //找到并点击提价信息控件
-        var activity2 = text("提交信息").findOne();
+    var activity2 = text("提交信息").findOne();
 
-        if (activity2 != null) {
-            activity2.click()
-            log("已找到提交信息");
-            sleep(random(myapp.delayMin, myapp.delayMax) * 200);
+    if (activity2 != null) {
+        activity2.click()
+        log("已找到提交信息");
+        sleep(200);
 
-        } else {
-            log("Error:未找到提交信息");
-            alert("由于不可控因素，打卡失败┭┮﹏┭┮，请手动处理");
-            return 0;
+    } else {
+        log("Error:未找到提交信息");
+        alert("由于不可控因素，打卡失败┭┮﹏┭┮，请手动处理");
+        return 0;
+    }
+
+    if (text("返回编辑").findOne()) {
+        //点击确认提交
+        if (myapp.confirmX == 0 && myapp.confirmY == 0){
+            //获取寻找范围
+            var rect = className("android.widget.FrameLayout").depth(8).findOne().bounds();
+            // //截图
+            var img = captureScreen();
+            //在该图片中找色，指定找色区域为在位置(400, 500)的宽为300长为200的区域，指定找色临界值为4
+            var point = findColor(img, "#F38A21", {
+                region: [rect.centerX(), rect.centerY()],
+                threshold: 20
+            });
+            if(point){
+                myapp.confirmX = point.x;
+                myapp.confirmY = point.y;
+                SaveData();
+                toastLog("找到啦:" +  myapp.confirmX + myapp.confirmY);
+            }else{
+                toastLog("没找到");
+            }
         }
-
-    //点击确认提交
-    setScreenMetrics(1080, 1920);
-    click(770, 1640);
-    sleep(100);
+        
+        click(myapp.confirmX, myapp.confirmY);
+        sleep(100);
+    }
 
     if(text("打卡成功").findOne(10000)!= null){
         alert("欢迎回来，已经完成打卡完成啦！\n(～￣▽￣)～");
